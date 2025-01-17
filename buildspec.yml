@@ -1,0 +1,38 @@
+version: 0.2
+
+phases:
+  install:
+    runtime-versions:
+      python: 3.8  # Specify Python version
+    commands:
+      - echo Installing dependencies...
+      - pip install -r requirements.txt  # Install Python dependencies
+      - docker --version  # Ensure Docker is installed
+
+  pre_build:
+    commands:
+      - echo Running tests...
+      - pytest tests/  # Run unit tests with pytest
+
+  build:
+    commands:
+      - echo Building Docker image...
+      - docker build -t my-flask-app .  # Build the Docker image for Flask app
+
+  post_build:
+    commands:
+      - echo Tagging Docker image...
+      - docker tag my-flask-app:latest 123456789012.dkr.ecr.us-west-2.amazonaws.com/my-flask-app:latest  # Tag Docker image for ECR
+      - echo Pushing Docker image to ECR...
+      - $(aws ecr get-login --no-include-email --region us-west-2)  # Login to ECR
+      - docker push 123456789012.dkr.ecr.us-west-2.amazonaws.com/my-flask-app:latest  # Push Docker image to ECR
+
+artifacts:
+  files:
+    - Dockerfile
+    - '**/*'  # Include all files for the output
+
+cache:
+  paths:
+    - '/root/.cache/pip/**/*'  # Cache pip dependencies
+    - '/root/.docker/**/*'  # Cache Docker layers
